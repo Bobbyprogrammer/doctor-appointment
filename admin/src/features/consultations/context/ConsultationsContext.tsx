@@ -14,9 +14,28 @@ import type {
   GetConsultationsResponse,
 } from "@/types/consultation";
 
-const ConsultationsContext = createContext<ConsultationsContextType | undefined>(
-  undefined
-);
+export interface AssignableDoctor {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialization?: string;
+}
+
+interface ExtendedConsultationsContextType extends ConsultationsContextType {
+  doctors: AssignableDoctor[];
+  doctorsLoading: boolean;
+  fetchAssignableDoctors: () => Promise<void>;
+  assignDoctorToConsultation: (
+    consultationId: string,
+    doctorId: string,
+    note?: string
+  ) => Promise<{ success: boolean; message: string }>;
+}
+
+const ConsultationsContext = createContext<
+  ExtendedConsultationsContextType | undefined
+>(undefined);
 
 interface ConsultationsProviderProps {
   children: ReactNode;
@@ -27,6 +46,9 @@ export const ConsultationsProvider = ({
 }: ConsultationsProviderProps) => {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const [doctors, setDoctors] = useState<AssignableDoctor[]>([]);
+  const [doctorsLoading, setDoctorsLoading] = useState<boolean>(false);
 
   const fetchAdminConsultations = async (): Promise<void> => {
     try {
@@ -49,8 +71,66 @@ export const ConsultationsProvider = ({
     }
   };
 
+  const fetchAssignableDoctors = async (): Promise<void> => {
+    try {
+      setDoctorsLoading(true);
+
+      // use your real backend endpoint here
+      const { data } = await api.get("/doctors/admin/list");
+
+      if (data.success) {
+        setDoctors(data.doctors || []);
+      } else {
+        setDoctors([]);
+      }
+    } catch (error) {
+      console.error("Error fetching doctors:", error);
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
+    }
+  };
+
+  const assignDoctorToConsultation = async (
+    consultationId: string,
+    doctorId: string,
+    note = ""
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const { data } = await api.patch(
+        `/consultations/admin/${consultationId}/assign-doctor`,
+        {
+          doctorId,
+          note,
+        }
+      );
+
+      if (data.success) {
+        await fetchAdminConsultations();
+        return {
+          success: true,
+          message: data.message || "Doctor assigned successfully",
+        };
+      }
+
+      return {
+        success: false,
+        message: data.message || "Failed to assign doctor",
+      };
+    } catch (error: any) {
+      console.error("Error assigning doctor:", error);
+
+      return {
+        success: false,
+        message:
+          error?.response?.data?.message || "Failed to assign doctor",
+      };
+    }
+  };
+
   useEffect(() => {
     fetchAdminConsultations();
+    fetchAssignableDoctors();
   }, []);
 
   return (
@@ -59,6 +139,10 @@ export const ConsultationsProvider = ({
         consultations,
         loading,
         fetchAdminConsultations,
+        doctors,
+        doctorsLoading,
+        fetchAssignableDoctors,
+        assignDoctorToConsultation,
       }}
     >
       {children}
@@ -66,7 +150,7 @@ export const ConsultationsProvider = ({
   );
 };
 
-export const useConsultations = (): ConsultationsContextType => {
+export const useConsultations = (): ExtendedConsultationsContextType => {
   const context = useContext(ConsultationsContext);
 
   if (!context) {

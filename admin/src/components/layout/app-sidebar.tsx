@@ -10,7 +10,7 @@ const AppSidebar = () => {
         </div>
         <div>
           <h2 className="text-lg font-bold text-white">Admin Panel</h2>
-          <p className="text-xs text-slate-400">Telemedicine CRM</p>
+          <p className="text-xs text-slate-400">QuickDoctor.io CRM</p>
         </div>
       </div>
 

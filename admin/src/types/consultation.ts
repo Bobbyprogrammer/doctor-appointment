@@ -33,6 +33,35 @@ export interface ConsultationUser {
   lastName: string;
   email: string;
 }
+
+export interface ConsultationPharmacySnapshot {
+  registrationNumber?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
+  town?: string;
+  county?: string;
+  eircode?: string;
+}
+
+export interface ConsultationPharmacy {
+  _id?: string;
+  id?: string;
+  registrationNumber?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
+  town?: string;
+  county?: string;
+  eircode?: string;
+}
+
 export interface ConsultationQuestionnaireAnswer {
   questionId: string;
   questionKey: string;
@@ -40,6 +69,7 @@ export interface ConsultationQuestionnaireAnswer {
   questionType: string;
   answer: string | number | boolean | string[] | null;
 }
+
 export interface Consultation {
   _id?: string;
   id?: string;
@@ -57,6 +87,11 @@ export interface Consultation {
   files: ConsultationFile[];
   reference: string;
   hasEmergencyFlag: boolean;
+
+  pharmacySelectionType?: "listed" | "other" | "none";
+  selectedPharmacyId?: string | ConsultationPharmacy | null;
+  selectedPharmacySnapshot?: ConsultationPharmacySnapshot;
+
   createdAt?: string;
   updatedAt?: string;
 }
@@ -72,4 +107,45 @@ export interface ConsultationsContextType {
   consultations: Consultation[];
   loading: boolean;
   fetchAdminConsultations: () => Promise<void>;
+}
+
+export interface AssignableDoctor {
+  _id?: string;
+  id?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialization?: string;
+  availableDays?: string[];
+  workStartTime?: string | null;
+  workEndTime?: string | null;
+  activeConsultations?: number;
+  isGp?: boolean;
+  isRelated?: boolean;
+}
+
+export interface AssignDoctorResponse {
+  success: boolean;
+  message: string;
+  consultation?: Consultation;
+}
+
+export interface GetAssignableDoctorsResponse {
+  success: boolean;
+  consultationId?: string;
+  serviceDoctorType?: string;
+  doctors: AssignableDoctor[];
+  message?: string;
+}
+
+export interface ExtendedConsultationsContextType
+  extends ConsultationsContextType {
+  doctors: AssignableDoctor[];
+  doctorsLoading: boolean;
+  fetchAssignableDoctors: () => Promise<void>;
+  assignDoctorToConsultation: (
+    consultationId: string,
+    doctorId: string,
+    note?: string
+  ) => Promise<{ success: boolean; message: string }>;
 }

@@ -41,8 +41,28 @@ export const sidebarRoutes: NavItem[] = [
     icon: FileQuestion,
   },
   {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
+    title: "Import Pharmacies",
+    href: "/pharmacies/import",
+    icon: FileQuestion,
   },
+  {
+    title: "Import Medicines",
+    href: "/medicines/import",
+    icon: FileQuestion,
+  },
+  {
+    title: "Sick Certificates",
+    href: "/sick-certificates",
+    icon: FileQuestion,
+  },
+  {
+    title: "Blogs",
+    href: "/blogs",
+    icon: FileQuestion,
+  },
+  // {
+  //   title: "Settings",
+  //   href: "/settings",
+  //   icon: Settings,
+  // },
 ];
