@@ -2,26 +2,72 @@ import mongoose from "mongoose";
 
 const prescriptionMedicineSchema = new mongoose.Schema(
   {
+    medicineId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Medicine",
+      default: null,
+    },
+
     name: {
       type: String,
       required: true,
       trim: true,
     },
+
+    genericName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    strength: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    form: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    indication: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    adultDose: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     dosage: {
       type: String,
       default: "",
       trim: true,
     },
+
     frequency: {
       type: String,
       default: "",
       trim: true,
     },
+
     duration: {
       type: String,
       default: "",
       trim: true,
     },
+
+    contraindicationsNotes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     instructions: {
       type: String,
       default: "",
@@ -98,6 +144,101 @@ const prescriptionSchema = new mongoose.Schema(
       type: [prescriptionFileSchema],
       default: [],
     },
+
+    pdfUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    pdfPublicId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    pharmacySnapshot: {
+      registrationNumber: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      name: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      email: {
+        type: String,
+        default: "",
+        trim: true,
+        lowercase: true,
+      },
+      phone: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      street1: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      street2: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      street3: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      town: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      county: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      eircode: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+
+    sentToPharmacy: {
+      type: Boolean,
+      default: false,
+    },
+    sentToPharmacyAt: {
+      type: Date,
+      default: null,
+    },
+    sentToPharmacyBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    sentToPatientEmail: {
+      type: Boolean,
+      default: false,
+    },
+    sentToPatientEmailAt: {
+      type: Date,
+      default: null,
+    },
+    sentToPatientEmailBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     issuedAt: {
       type: Date,
       default: Date.now,

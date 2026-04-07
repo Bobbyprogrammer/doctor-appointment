@@ -58,6 +58,13 @@ export default function DoctorLayout({
             <Stethoscope size={18} />
             Consultations
           </Link>
+          <Link
+            href="/doctor/sick-certificates"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-white/10"
+          >
+            <Stethoscope size={18} />
+            Sick Certificates
+          </Link>
 
           <Link
             href="/doctor/prescriptions"

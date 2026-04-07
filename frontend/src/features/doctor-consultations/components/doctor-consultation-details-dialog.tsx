@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,32 +9,120 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Consultation } from "@/types/consultation";
+import type { Consultation, ConsultationStatus } from "@/types/consultation";
 import DoctorConsultationStatusBadge from "./doctor-consultation-status-badge";
 import DoctorPaymentStatusBadge from "./doctor-payment-status-badge";
 import CreatePrescriptionDialog from "@/features/doctor-prescriptions/components/create-prescription-dialog";
+import { useDoctorConsultations } from "@/features/doctor-consultations/context/DoctorConsultationsContext";
 
 interface DoctorConsultationDetailsDialogProps {
   consultation: Consultation;
 }
 
-const currency = process.env.NEXT_PUBLIC_CURRENCY;
+const currency = process.env.NEXT_PUBLIC_CURRENCY || "$";
+
+const getAllowedNextStatuses = (
+  currentStatus: ConsultationStatus
+): ConsultationStatus[] => {
+  const transitions: Record<ConsultationStatus, ConsultationStatus[]> = {
+    pending_payment: [],
+    waiting_for_review: ["under_review", "rejected"],
+    under_review: ["doctor_message_sent", "completed", "rejected"],
+    doctor_message_sent: ["under_review", "completed", "rejected"],
+    completed: [],
+    rejected: [],
+    cancelled: [],
+  };
+
+  return transitions[currentStatus] || [];
+};
+
+const formatAnswer = (
+  answer: string | number | boolean | string[] | null
+): string => {
+  if (Array.isArray(answer)) return answer.length ? answer.join(", ") : "—";
+  if (typeof answer === "boolean") return answer ? "Yes" : "No";
+  if (answer !== null && answer !== undefined && answer !== "") {
+    return String(answer);
+  }
+  return "—";
+};
 
 export default function DoctorConsultationDetailsDialog({
   consultation,
 }: DoctorConsultationDetailsDialogProps) {
+  const { updateConsultationStatus } = useDoctorConsultations();
+
+  const [doctorNote, setDoctorNote] = useState("");
+  const [submittingStatus, setSubmittingStatus] = useState(false);
+  const [open, setOpen] = useState(false);
+
   const patient =
     typeof consultation.patientId === "object" ? consultation.patientId : null;
 
   const service =
     typeof consultation.serviceId === "object" ? consultation.serviceId : null;
 
+  const pharmacySnapshot = consultation.selectedPharmacySnapshot || null;
+
+  const hasPharmacy =
+    consultation.pharmacySelectionType &&
+    consultation.pharmacySelectionType !== "none" &&
+    pharmacySnapshot &&
+    (pharmacySnapshot.name ||
+      pharmacySnapshot.email ||
+      pharmacySnapshot.phone ||
+      pharmacySnapshot.town ||
+      pharmacySnapshot.county ||
+      pharmacySnapshot.eircode);
+
   const hasQuestionnaire =
     Array.isArray(consultation.questionnaireAnswers) &&
     consultation.questionnaireAnswers.length > 0;
 
+  const allowedStatuses = useMemo(
+    () => getAllowedNextStatuses(consultation.status),
+    [consultation.status]
+  );
+
+  const consultationId = consultation._id || consultation.id || "";
+
+  const canCreatePrescription =
+  consultation.paymentStatus === "paid" &&
+  consultation.status !== "rejected" &&
+  consultation.status !== "cancelled";
+
+  const handleStatusChange = async (nextStatus: ConsultationStatus) => {
+    if (!consultationId) {
+      alert("Consultation id not found");
+      return;
+    }
+
+    try {
+      setSubmittingStatus(true);
+
+      const result = await updateConsultationStatus(
+        consultationId,
+        nextStatus,
+        doctorNote
+      );
+
+      alert(result.message);
+
+      if (result.success) {
+        setDoctorNote("");
+        setOpen(false);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update consultation status");
+    } finally {
+      setSubmittingStatus(false);
+    }
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           size="sm"
@@ -44,7 +133,7 @@ export default function DoctorConsultationDetailsDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] max-w-2xl sm:max-w-5xl lg:max-w-2xl overflow-y-auto overflow-y-auto border-white/10 bg-[#24303d] text-white">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-white/10 bg-[#24303d] text-white sm:max-w-5xl lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Consultation Details</DialogTitle>
         </DialogHeader>
@@ -109,6 +198,95 @@ export default function DoctorConsultationDetailsDialog({
             </div>
           </div>
 
+          {hasPharmacy && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <h3 className="mb-4 font-semibold">Preferred Pharmacy</h3>
+
+              <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-2">
+                <p>
+                  <span className="text-slate-400">Selection Type: </span>
+                  <span className="capitalize">
+                    {consultation.pharmacySelectionType === "listed"
+                      ? "From list"
+                      : consultation.pharmacySelectionType === "other"
+                      ? "Other pharmacy"
+                      : "None"}
+                  </span>
+                </p>
+
+                {pharmacySnapshot?.registrationNumber && (
+                  <p>
+                    <span className="text-slate-400">Registration Number: </span>
+                    {pharmacySnapshot.registrationNumber}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.name && (
+                  <p>
+                    <span className="text-slate-400">Pharmacy Name: </span>
+                    {pharmacySnapshot.name}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.phone && (
+                  <p>
+                    <span className="text-slate-400">Phone: </span>
+                    {pharmacySnapshot.phone}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.email && (
+                  <p>
+                    <span className="text-slate-400">Email: </span>
+                    {pharmacySnapshot.email}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.street1 && (
+                  <p>
+                    <span className="text-slate-400">Street 1: </span>
+                    {pharmacySnapshot.street1}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.street2 && (
+                  <p>
+                    <span className="text-slate-400">Street 2: </span>
+                    {pharmacySnapshot.street2}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.street3 && (
+                  <p>
+                    <span className="text-slate-400">Street 3: </span>
+                    {pharmacySnapshot.street3}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.town && (
+                  <p>
+                    <span className="text-slate-400">Town: </span>
+                    {pharmacySnapshot.town}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.county && (
+                  <p>
+                    <span className="text-slate-400">County: </span>
+                    {pharmacySnapshot.county}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.eircode && (
+                  <p>
+                    <span className="text-slate-400">Eircode: </span>
+                    {pharmacySnapshot.eircode}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <h3 className="mb-4 font-semibold">Status</h3>
@@ -130,9 +308,85 @@ export default function DoctorConsultationDetailsDialog({
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <h3 className="mb-4 font-semibold">Notes</h3>
-              <p className="text-sm text-slate-300">
+              <p className="whitespace-pre-line text-sm text-slate-300">
                 {consultation.notes || "No notes provided."}
               </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h3 className="mb-4 font-semibold">Update Consultation Status</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Doctor Note
+                </label>
+                <textarea
+                  value={doctorNote}
+                  onChange={(e) => setDoctorNote(e.target.value)}
+                  rows={4}
+                  placeholder="Add optional note before updating consultation status..."
+                  className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+                  disabled={submittingStatus}
+                />
+              </div>
+
+              {consultation.paymentStatus !== "paid" ? (
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+                  This consultation cannot be processed until payment is completed.
+                </div>
+              ) : allowedStatuses.length === 0 ? (
+                <div className="rounded-xl border border-slate-700 bg-black/20 px-4 py-3 text-sm text-slate-400">
+                  No further status changes are available for this consultation.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {allowedStatuses.includes("under_review") && (
+                    <Button
+                      type="button"
+                      onClick={() => handleStatusChange("under_review")}
+                      disabled={submittingStatus}
+                      className="bg-blue-600 text-white hover:bg-blue-500"
+                    >
+                      {submittingStatus ? "Saving..." : "Mark Under Review"}
+                    </Button>
+                  )}
+
+                  {allowedStatuses.includes("doctor_message_sent") && (
+                    <Button
+                      type="button"
+                      onClick={() => handleStatusChange("doctor_message_sent")}
+                      disabled={submittingStatus}
+                      className="bg-amber-600 text-white hover:bg-amber-500"
+                    >
+                      {submittingStatus ? "Saving..." : "Mark Doctor Message Sent"}
+                    </Button>
+                  )}
+
+                  {allowedStatuses.includes("completed") && (
+                    <Button
+                      type="button"
+                      onClick={() => handleStatusChange("completed")}
+                      disabled={submittingStatus}
+                      className="bg-green-600 text-white hover:bg-green-500"
+                    >
+                      {submittingStatus ? "Saving..." : "Mark Completed"}
+                    </Button>
+                  )}
+
+                  {allowedStatuses.includes("rejected") && (
+                    <Button
+                      type="button"
+                      onClick={() => handleStatusChange("rejected")}
+                      disabled={submittingStatus}
+                      variant="destructive"
+                    >
+                      {submittingStatus ? "Saving..." : "Reject Consultation"}
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -141,40 +395,22 @@ export default function DoctorConsultationDetailsDialog({
               <h3 className="mb-4 font-semibold">Questionnaire Answers</h3>
 
               <div className="grid gap-3 md:grid-cols-2">
-                {consultation.questionnaireAnswers.map((item, index) => {
-                  let displayValue = "—";
-
-                  if (Array.isArray(item.answer)) {
-                    displayValue = item.answer.length
-                      ? item.answer.join(", ")
-                      : "—";
-                  } else if (typeof item.answer === "boolean") {
-                    displayValue = item.answer ? "Yes" : "No";
-                  } else if (
-                    item.answer !== null &&
-                    item.answer !== undefined &&
-                    item.answer !== ""
-                  ) {
-                    displayValue = String(item.answer);
-                  }
-
-                  return (
-                    <div
-                      key={`${item.questionId}-${index}`}
-                      className="rounded-xl bg-black/30 p-4"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        {item.questionType?.replaceAll("_", " ") || "Question"}
-                      </p>
-                      <p className="mt-2 text-sm font-medium text-white">
-                        {item.questionText}
-                      </p>
-                      <p className="mt-2 text-sm text-slate-200">
-                        {displayValue}
-                      </p>
-                    </div>
-                  );
-                })}
+                {consultation.questionnaireAnswers.map((item, index) => (
+                  <div
+                    key={`${item.questionId}-${index}`}
+                    className="rounded-xl bg-black/30 p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {item.questionType?.replaceAll("_", " ") || "Question"}
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-white">
+                      {item.questionText}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-200">
+                      {formatAnswer(item.answer)}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -201,7 +437,13 @@ export default function DoctorConsultationDetailsDialog({
           )}
 
           <div className="flex justify-end">
-            <CreatePrescriptionDialog consultationId={consultation._id!} />
+            {canCreatePrescription && (
+             <CreatePrescriptionDialog
+  consultationId={consultationId}
+  patientEmail={patient?.email}
+  pharmacySnapshot={consultation.selectedPharmacySnapshot}
+/>
+            )}
           </div>
         </div>
       </DialogContent>

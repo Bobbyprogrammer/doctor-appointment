@@ -11,6 +11,34 @@ export type ConsultationStatus =
 
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
+export interface ConsultationPharmacySnapshot {
+  registrationNumber?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
+  town?: string;
+  county?: string;
+  eircode?: string;
+}
+
+export interface ConsultationPharmacy {
+  _id?: string;
+  id?: string;
+  registrationNumber?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
+  town?: string;
+  county?: string;
+  eircode?: string;
+}
+
 export interface ConsultationFile {
   name: string;
   url: string;
@@ -26,6 +54,7 @@ export interface ConsultationQuestionnaireAnswerInput {
   questionId: string;
   answer: any;
 }
+
 export interface ConsultationUser {
   _id?: string;
   id?: string;
@@ -82,6 +111,10 @@ export interface Consultation {
   reference: string;
   hasEmergencyFlag: boolean;
 
+  pharmacySelectionType?: "listed" | "other" | "none";
+  selectedPharmacyId?: string | ConsultationPharmacy | null;
+  selectedPharmacySnapshot?: ConsultationPharmacySnapshot;
+
   createdAt?: string;
   updatedAt?: string;
 }
@@ -92,17 +125,17 @@ export interface CreateConsultationPayload {
   notes?: string;
   patientType?: PatientType;
   patientDob?: string | null;
-   questionnaireAnswers?: ConsultationQuestionnaireAnswerInput[];
+  questionnaireAnswers?: ConsultationQuestionnaireAnswerInput[];
   redFlags?: Record<string, boolean>;
   files?: File[];
-}
 
-export interface ConsultationQuestionnaireAnswer {
-  questionId: string;
-  questionKey: string;
-  questionText: string;
-  questionType: string;
-  answer: string | number | boolean | string[] | null;
+  pharmacySelectionType?: "listed" | "other" | "none";
+  selectedPharmacyId?: string | null;
+  selectedPharmacyOther?: {
+    name: string;
+    phone: string;
+    email: string;
+  } | null;
 }
 
 export interface CreateConsultationResponse {
@@ -125,4 +158,7 @@ export interface ConsultationsContextType {
     payload: CreateConsultationPayload
   ) => Promise<CreateConsultationResponse>;
   fetchMyConsultations: () => Promise<void>;
+  startConsultationPayment: (
+    consultationId: string
+  ) => Promise<{ success: boolean; url?: string; message: string }>;
 }

@@ -23,7 +23,22 @@ export default function ConsultationDetailsDialog({
 }: ConsultationDetailsDialogProps) {
   const service =
     typeof consultation.serviceId === "object" ? consultation.serviceId : null;
+
   const questionnaireAnswers = consultation.questionnaireAnswers || [];
+
+  const pharmacySnapshot = consultation.selectedPharmacySnapshot || null;
+
+  const hasPharmacy =
+    consultation.pharmacySelectionType &&
+    consultation.pharmacySelectionType !== "none" &&
+    pharmacySnapshot &&
+    (pharmacySnapshot.name ||
+      pharmacySnapshot.email ||
+      pharmacySnapshot.phone ||
+      pharmacySnapshot.town ||
+      pharmacySnapshot.county ||
+      pharmacySnapshot.eircode);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -36,7 +51,7 @@ export default function ConsultationDetailsDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] max-w-2xl sm:max-w-5xl lg:max-w-2xl overflow-y-auto border-white/10 bg-[#24303d] text-white">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-white/10 bg-[#24303d] text-white sm:max-w-5xl lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Consultation Details</DialogTitle>
         </DialogHeader>
@@ -133,6 +148,97 @@ export default function ConsultationDetailsDialog({
             </div>
           )}
 
+          {hasPharmacy && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <h3 className="mb-4 font-semibold text-white">
+                Preferred Pharmacy
+              </h3>
+
+              <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-2">
+                <p>
+                  <span className="text-slate-400">Selection Type: </span>
+                  <span className="capitalize">
+                    {consultation.pharmacySelectionType === "listed"
+                      ? "From list"
+                      : consultation.pharmacySelectionType === "other"
+                      ? "Other pharmacy"
+                      : "None"}
+                  </span>
+                </p>
+
+                {pharmacySnapshot?.registrationNumber && (
+                  <p>
+                    <span className="text-slate-400">Registration Number: </span>
+                    {pharmacySnapshot.registrationNumber}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.name && (
+                  <p>
+                    <span className="text-slate-400">Pharmacy Name: </span>
+                    {pharmacySnapshot.name}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.phone && (
+                  <p>
+                    <span className="text-slate-400">Phone: </span>
+                    {pharmacySnapshot.phone}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.email && (
+                  <p>
+                    <span className="text-slate-400">Email: </span>
+                    {pharmacySnapshot.email}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.street1 && (
+                  <p>
+                    <span className="text-slate-400">Street 1: </span>
+                    {pharmacySnapshot.street1}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.street2 && (
+                  <p>
+                    <span className="text-slate-400">Street 2: </span>
+                    {pharmacySnapshot.street2}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.street3 && (
+                  <p>
+                    <span className="text-slate-400">Street 3: </span>
+                    {pharmacySnapshot.street3}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.town && (
+                  <p>
+                    <span className="text-slate-400">Town: </span>
+                    {pharmacySnapshot.town}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.county && (
+                  <p>
+                    <span className="text-slate-400">County: </span>
+                    {pharmacySnapshot.county}
+                  </p>
+                )}
+
+                {pharmacySnapshot?.eircode && (
+                  <p>
+                    <span className="text-slate-400">Eircode: </span>
+                    {pharmacySnapshot.eircode}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <h3 className="mb-3 font-semibold text-white">Notes</h3>
             <p className="text-sm text-slate-300">
@@ -153,10 +259,15 @@ export default function ConsultationDetailsDialog({
                   let displayAnswer = "No answer";
 
                   if (Array.isArray(answer)) {
-                    displayAnswer = answer.length > 0 ? answer.join(", ") : "No answer";
+                    displayAnswer =
+                      answer.length > 0 ? answer.join(", ") : "No answer";
                   } else if (typeof answer === "boolean") {
                     displayAnswer = answer ? "Yes" : "No";
-                  } else if (answer !== null && answer !== undefined && answer !== "") {
+                  } else if (
+                    answer !== null &&
+                    answer !== undefined &&
+                    answer !== ""
+                  ) {
                     displayAnswer = String(answer);
                   }
 

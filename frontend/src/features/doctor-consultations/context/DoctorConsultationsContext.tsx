@@ -7,7 +7,7 @@ import {
   ReactNode,
 } from "react";
 import api from "@/lib/axios";
-import type { Consultation } from "@/types/consultation";
+import type { Consultation, ConsultationStatus } from "@/types/consultation";
 
 interface DoctorConsultationsResponse {
   success: boolean;
@@ -20,6 +20,11 @@ interface DoctorConsultationsContextType {
   consultations: Consultation[];
   loading: boolean;
   fetchAssignedConsultations: () => Promise<void>;
+  updateConsultationStatus: (
+    consultationId: string,
+    status: ConsultationStatus,
+    note?: string
+  ) => Promise<{ success: boolean; message: string }>;
 }
 
 const DoctorConsultationsContext = createContext<
@@ -34,7 +39,7 @@ export const DoctorConsultationsProvider = ({
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchAssignedConsultations = async () => {
+  const fetchAssignedConsultations = async (): Promise<void> => {
     try {
       setLoading(true);
 
@@ -55,12 +60,51 @@ export const DoctorConsultationsProvider = ({
     }
   };
 
+  const updateConsultationStatus = async (
+    consultationId: string,
+    status: ConsultationStatus,
+    note = ""
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const { data } = await api.patch(
+        `/consultations/doctor/${consultationId}/status`,
+        {
+          status,
+          note,
+        }
+      );
+
+      if (data.success) {
+        await fetchAssignedConsultations();
+        return {
+          success: true,
+          message: data.message || "Status updated successfully",
+        };
+      }
+
+      return {
+        success: false,
+        message: data.message || "Failed to update consultation status",
+      };
+    } catch (error: any) {
+      console.error("Error updating consultation status:", error);
+
+      return {
+        success: false,
+        message:
+          error?.response?.data?.message ||
+          "Failed to update consultation status",
+      };
+    }
+  };
+
   return (
     <DoctorConsultationsContext.Provider
       value={{
         consultations,
         loading,
         fetchAssignedConsultations,
+        updateConsultationStatus,
       }}
     >
       {children}

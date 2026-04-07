@@ -5,11 +5,9 @@ import type {
   GetMyConsultationsResponse,
 } from "@/types/consultation";
 
-
-
 export const createConsultationApi = async (
-  payload: CreateConsultationPayload & { files?: File[] }
-) => {
+  payload: CreateConsultationPayload
+): Promise<CreateConsultationResponse> => {
   const formData = new FormData();
 
   formData.append("serviceId", payload.serviceId);
@@ -30,7 +28,6 @@ export const createConsultationApi = async (
     formData.append("notes", payload.notes);
   }
 
-  // IMPORTANT: stringify objects
   if (payload.questionnaireAnswers) {
     formData.append(
       "questionnaireAnswers",
@@ -42,11 +39,33 @@ export const createConsultationApi = async (
     formData.append("redFlags", JSON.stringify(payload.redFlags));
   }
 
-  // FILES
+  // pharmacy fields
+  formData.append(
+    "pharmacySelectionType",
+    payload.pharmacySelectionType || "none"
+  );
+
+  if (payload.selectedPharmacyId) {
+    formData.append("selectedPharmacyId", payload.selectedPharmacyId);
+  }
+
+  if (payload.selectedPharmacyOther) {
+    formData.append(
+      "selectedPharmacyOther",
+      JSON.stringify(payload.selectedPharmacyOther)
+    );
+  }
+
+  // files
   if (payload.files && payload.files.length > 0) {
     payload.files.forEach((file) => {
       formData.append("files", file);
     });
+  }
+
+  // debug
+  for (const pair of formData.entries()) {
+    console.log(pair[0], pair[1]);
   }
 
   const { data } = await api.post<CreateConsultationResponse>(
@@ -62,7 +81,7 @@ export const createConsultationApi = async (
   return data;
 };
 
-export const getMyConsultationsApi = async () => {
+export const getMyConsultationsApi = async (): Promise<GetMyConsultationsResponse> => {
   const { data } = await api.get<GetMyConsultationsResponse>(
     "/consultations/my"
   );

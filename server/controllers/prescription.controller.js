@@ -1,6 +1,38 @@
-import { Prescription } from "../models/Prescription.js";
+
+import mongoose from "mongoose";
 import { Consultation } from "../models/Consultation.js";
+import { Prescription } from "../models/Prescription.js";
 import { uploadToCloudinary } from "../config/cloudinary.js";
+import { generatePrescriptionPdfBuffer } from "../services/prescription-pdf.service.js";
+import {
+  sendPrescriptionToPharmacyEmail,
+  sendPrescriptionToPatientEmail,
+} from "../services/prescription-email.service.js";
+
+
+const normalizeMedicines = (rawMedicines = []) => {
+  if (!Array.isArray(rawMedicines)) return [];
+
+  return rawMedicines
+    .filter((med) => med && typeof med === "object")
+    .map((med) => ({
+      medicineId: med.medicineId || null,
+      name: String(med.name || "").trim(),
+      genericName: String(med.genericName || "").trim(),
+      strength: String(med.strength || "").trim(),
+      form: String(med.form || "").trim(),
+      indication: String(med.indication || "").trim(),
+      adultDose: String(med.adultDose || "").trim(),
+      dosage: String(med.dosage || "").trim(),
+      frequency: String(med.frequency || "").trim(),
+      duration: String(med.duration || "").trim(),
+      contraindicationsNotes: String(med.contraindicationsNotes || "").trim(),
+      instructions: String(med.instructions || "").trim(),
+    }))
+    .filter((med) => med.medicineId && med.name);
+};
+
+
 
 export const createPrescription = async (req, res) => {
   try {
@@ -18,6 +50,8 @@ export const createPrescription = async (req, res) => {
       }
     }
 
+    medicines = normalizeMedicines(medicines);
+
     if (!consultationId) {
       return res.status(400).json({
         success: false,
@@ -28,11 +62,13 @@ export const createPrescription = async (req, res) => {
     if (!Array.isArray(medicines) || medicines.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "At least one medicine is required",
+        message: "At least one valid selected medicine is required",
       });
     }
 
-    const consultation = await Consultation.findById(consultationId);
+    const consultation = await Consultation.findById(consultationId)
+      .populate("patientId", "firstName lastName email")
+      .populate("doctorId", "firstName lastName email");
 
     if (!consultation) {
       return res.status(404).json({
@@ -97,17 +133,49 @@ export const createPrescription = async (req, res) => {
       }
     }
 
+    const pharmacySnapshot = consultation.selectedPharmacySnapshot || {
+      registrationNumber: "",
+      name: "",
+      email: "",
+      phone: "",
+      street1: "",
+      street2: "",
+      street3: "",
+      town: "",
+      county: "",
+      eircode: "",
+    };
+
     const prescription = await Prescription.create({
       consultationId: consultation._id,
-      patientId: consultation.patientId,
-      doctorId: consultation.doctorId || req.user._id,
+      patientId: consultation.patientId._id || consultation.patientId,
+      doctorId: consultation.doctorId?._id || consultation.doctorId || req.user._id,
       reference,
       diagnosis: diagnosis?.trim() || "",
       notes: notes?.trim() || "",
       medicines,
       files: uploadedFiles,
+      pharmacySnapshot,
       issuedAt: new Date(),
     });
+
+    const pdfBuffer = await generatePrescriptionPdfBuffer({
+      prescription,
+      patient: consultation.patientId,
+      doctor: consultation.doctorId,
+      consultation,
+    });
+
+    const pdfUpload = await uploadToCloudinary(pdfBuffer, {
+      folder: "doctor-appointment/prescription-pdfs",
+      resource_type: "raw",
+      public_id: `${reference}`,
+      format: "pdf",
+    });
+
+    prescription.pdfUrl = pdfUpload.url;
+    prescription.pdfPublicId = pdfUpload.public_id;
+    await prescription.save();
 
     if (consultation.status !== "completed") {
       consultation.status = "completed";
@@ -124,6 +192,202 @@ export const createPrescription = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const sendPrescriptionToPharmacy = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const prescription = await Prescription.findById(id)
+      .populate("patientId", "firstName lastName email")
+      .populate("doctorId", "firstName lastName email")
+      .populate("consultationId", "reference status");
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: "Prescription not found",
+      });
+    }
+
+    if (prescription.sentToPharmacy) {
+      return res.status(400).json({
+        success: false,
+        message: "Prescription already sent to pharmacy",
+      });
+    }
+    if (!prescription.pharmacySnapshot?.email) {
+      return res.status(400).json({
+        success: false,
+        message: "No pharmacy email found for this prescription",
+      });
+    }
+
+    const pdfBuffer = await generatePrescriptionPdfBuffer({
+      prescription,
+      patient: prescription.patientId,
+      doctor: prescription.doctorId,
+      consultation: prescription.consultationId,
+    });
+
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to generate prescription PDF",
+      });
+    }
+
+    const patientName = `${prescription.patientId?.firstName || ""} ${
+      prescription.patientId?.lastName || ""
+    }`.trim();
+
+    const doctorName = `${prescription.doctorId?.firstName || ""} ${
+      prescription.doctorId?.lastName || ""
+    }`.trim();
+
+    await sendPrescriptionToPharmacyEmail({
+      to: prescription.pharmacySnapshot.email,
+      pharmacyName: prescription.pharmacySnapshot.name,
+      patientName,
+      doctorName,
+      prescriptionReference: prescription.reference,
+      pdfBuffer,
+    });
+
+    prescription.sentToPharmacy = true;
+    prescription.sentToPharmacyAt = new Date();
+    prescription.sentToPharmacyBy = req.user._id;
+    await prescription.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Prescription sent to pharmacy successfully",
+    });
+  } catch (error) {
+    console.error("Error in sendPrescriptionToPharmacy:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send prescription to pharmacy",
+      error: error.message,
+    });
+  }
+};
+
+
+export const sendPrescriptionToPatient = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const prescription = await Prescription.findById(id)
+      .populate("patientId", "firstName lastName email")
+      .populate("doctorId", "firstName lastName email")
+      .populate("consultationId", "reference status");
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: "Prescription not found",
+      });
+    }
+
+    if (!prescription.patientId?.email) {
+      return res.status(400).json({
+        success: false,
+        message: "Patient email not found",
+      });
+    }
+
+    if (prescription.sentToPatientEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Prescription already sent to patient email",
+      });
+    }
+
+    const pdfBuffer = await generatePrescriptionPdfBuffer({
+      prescription,
+      patient: prescription.patientId,
+      doctor: prescription.doctorId,
+      consultation: prescription.consultationId,
+    });
+
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to generate prescription PDF",
+      });
+    }
+
+    const patientName = `${prescription.patientId?.firstName || ""} ${
+      prescription.patientId?.lastName || ""
+    }`.trim();
+
+    const doctorName = `${prescription.doctorId?.firstName || ""} ${
+      prescription.doctorId?.lastName || ""
+    }`.trim();
+
+    await sendPrescriptionToPatientEmail({
+      to: prescription.patientId.email,
+      patientName,
+      doctorName,
+      prescriptionReference: prescription.reference,
+      pdfBuffer,
+    });
+
+    prescription.sentToPatientEmail = true;
+    prescription.sentToPatientEmailAt = new Date();
+    prescription.sentToPatientEmailBy = req.user._id;
+    await prescription.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Prescription sent to patient email successfully",
+    });
+  } catch (error) {
+    console.error("Error in sendPrescriptionToPatient:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send prescription to patient",
+      error: error.message,
+    });
+  }
+};
+
+export const downloadPrescriptionPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const prescription = await Prescription.findById(id).select(
+      "reference pdfUrl"
+    );
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: "Prescription not found",
+      });
+    }
+
+    if (!prescription.pdfUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Prescription PDF is not available",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      fileName: `${prescription.reference}.pdf`,
+      url: prescription.pdfUrl,
+    });
+  } catch (error) {
+    console.error("Error in downloadPrescriptionPdf:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get prescription PDF",
       error: error.message,
     });
   }
@@ -243,6 +507,10 @@ export const updatePrescription = async (req, res) => {
       }
     }
 
+    if (Array.isArray(medicines)) {
+      medicines = normalizeMedicines(medicines);
+    }
+
     const prescription = await Prescription.findById(id);
     if (!prescription) {
       return res.status(404).json({
@@ -253,7 +521,10 @@ export const updatePrescription = async (req, res) => {
 
     if (diagnosis !== undefined) prescription.diagnosis = diagnosis.trim();
     if (notes !== undefined) prescription.notes = notes.trim();
-    if (Array.isArray(medicines)) prescription.medicines = medicines;
+
+    if (Array.isArray(medicines) && medicines.length > 0) {
+      prescription.medicines = medicines;
+    }
 
     let uploadedFiles = [];
     if (req.files && req.files.length > 0) {

@@ -2,8 +2,76 @@ import bcrypt from "bcryptjs";
 import { User } from "../models/User.js";
 import { DoctorProfile } from "../models/DoctorProfile.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
+import { Consultation } from "../models/Consultation.js";
+import { SickCertificate } from "../models/sickCertificate.js";
 
+export const getDoctorDashboardStats = async (req, res) => {
+  try {
+    const doctorId = req.user._id;
 
+    const [
+      assignedConsultations,
+      underReviewConsultations,
+      completedConsultations,
+
+      assignedSickCertificates,
+      underReviewSickCertificates,
+      completedSickCertificates,
+    ] = await Promise.all([
+      Consultation.countDocuments({
+        doctorId,
+      }),
+
+      Consultation.countDocuments({
+        doctorId,
+        status: "pending_payment",
+      }),
+
+      Consultation.countDocuments({
+        doctorId,
+        status: "completed",
+      }),
+
+      SickCertificate.countDocuments({
+        doctorId,
+      }),
+
+      SickCertificate.countDocuments({
+        doctorId,
+        status: "under_review",
+      }),
+
+      SickCertificate.countDocuments({
+        doctorId,
+        status: {
+          $in: ["certificate_generated", "approved"],
+        },
+      }),
+    ]);
+
+    console.log("completed",completedConsultations);
+    
+    return res.status(200).json({
+      success: true,
+      stats: {
+        assignedConsultations,
+        underReviewConsultations,
+        completedConsultations,
+
+        assignedSickCertificates,
+        underReviewSickCertificates,
+        completedSickCertificates,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getDoctorDashboardStats:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 
 
 export const createDoctor = async (req, res) => {
@@ -287,34 +355,34 @@ export const getDoctors = async (req, res) => {
   }
 };
 
-export const getDoctorById = async (req, res) => {
-  try {
-    const { id } = req.params;
+// export const getDoctorById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    const doctor = await User.findOne({ _id: id, role: "doctor" })
-      .select("-password")
-      .populate("doctorProfile");
+//     const doctor = await User.findOne({ _id: id, role: "doctor" })
+//       .select("-password")
+//       .populate("doctorProfile");
 
-    if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        message: "Doctor not found",
-      });
-    }
+//     if (!doctor) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Doctor not found",
+//       });
+//     }
 
-    return res.status(200).json({
-      success: true,
-      doctor,
-    });
-  } catch (error) {
-    console.error("Error in getDoctorById:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};
+//     return res.status(200).json({
+//       success: true,
+//       doctor,
+//     });
+//   } catch (error) {
+//     console.error("Error in getDoctorById:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: error.message,
+//     });
+//   }
+// };
 
 export const updateDoctor = async (req, res) => {
   const getSingleValue = (value, defaultValue = "") => {

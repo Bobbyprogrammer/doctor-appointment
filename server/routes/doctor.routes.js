@@ -2,9 +2,10 @@ import express from "express";
 import {
   createDoctor,
   getDoctors,
-  getDoctorById,
+  // getDoctorById,
   updateDoctor,
   deleteDoctor,
+  getDoctorDashboardStats,
 } from "../controllers/doctor.controller.js";
 import { protectRoute, authorizeRoles } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.js";
@@ -26,7 +27,7 @@ router.post(
 
 router.get("/", getDoctors);
 
-router.get("/:id", getDoctorById);
+// router.get("/:id", getDoctorById);
 
 router.put(
   "/update/:id",
@@ -44,6 +45,13 @@ router.delete(
   protectRoute,
   authorizeRoles("admin", "super_admin"),
   deleteDoctor
+);
+
+router.get(
+  "/dashboard-stats",
+  protectRoute,
+  authorizeRoles("doctor"),
+  getDoctorDashboardStats
 );
 
 export default router;

@@ -49,11 +49,14 @@ export default function PatientLayout({
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <PatientHeader onOpenSidebar={() => setMobileSidebarOpen(true)} />
 
+
+
           <main className="flex-1 min-w-0">
             <div className="w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
               {children}
             </div>
           </main>
+     
         </div>
       </div>
     </div>

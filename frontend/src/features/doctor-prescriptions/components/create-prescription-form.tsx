@@ -1,19 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
-import MedicineInput from "./medicine-input";
+import MedicineSelectInput from "./medicine-select-input";
+
+interface PharmacySnapshot {
+  registrationNumber?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
+  town?: string;
+  county?: string;
+  eircode?: string;
+}
+
+interface CreatedPrescription {
+  _id?: string;
+  id?: string;
+  reference: string;
+  pdfUrl?: string;
+  pharmacySnapshot?: PharmacySnapshot;
+  sentToPharmacy?: boolean;
+  sentToPatientEmail?: boolean;
+}
 
 interface Props {
   consultationId: string;
-  onSuccess?: () => void;
+  pharmacySnapshot?: PharmacySnapshot | null;
+  onSuccess?: (prescription: CreatedPrescription) => void;
+}
+
+interface MedicineRow {
+  medicineId?: string | null;
+  name: string;
+  genericName?: string;
+  strength?: string;
+  form?: string;
+  indication?: string;
+  adultDose?: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  contraindicationsNotes?: string;
+  instructions: string;
 }
 
 export default function CreatePrescriptionForm({
   consultationId,
+  pharmacySnapshot,
   onSuccess,
 }: Props) {
   const [diagnosis, setDiagnosis] = useState("");
@@ -21,23 +61,63 @@ export default function CreatePrescriptionForm({
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [medicines, setMedicines] = useState([
+  const [medicines, setMedicines] = useState<MedicineRow[]>([
     {
+      medicineId: null,
       name: "",
+      genericName: "",
+      strength: "",
+      form: "",
+      indication: "",
+      adultDose: "",
       dosage: "",
       frequency: "",
       duration: "",
+      contraindicationsNotes: "",
       instructions: "",
     },
   ]);
 
+  const hasPharmacy = useMemo(() => {
+    return !!(
+      pharmacySnapshot &&
+      (pharmacySnapshot.name ||
+        pharmacySnapshot.email ||
+        pharmacySnapshot.phone ||
+        pharmacySnapshot.town ||
+        pharmacySnapshot.county ||
+        pharmacySnapshot.eircode)
+    );
+  }, [pharmacySnapshot]);
+
   const handleMedicineChange = (
     index: number,
-    field: string,
+    field: keyof MedicineRow,
     value: string
   ) => {
     const updated = [...medicines];
-    updated[index][field as keyof (typeof updated)[0]] = value;
+    updated[index][field] = value as never;
+    setMedicines(updated);
+  };
+
+  const handleSelectMedicine = (index: number, selectedMedicine: any) => {
+    const updated = [...medicines];
+
+    updated[index] = {
+      ...updated[index],
+      medicineId: selectedMedicine._id || selectedMedicine.id,
+      name: selectedMedicine.medicineName || "",
+      genericName: selectedMedicine.genericName || "",
+      strength: selectedMedicine.strength || "",
+      form: selectedMedicine.form || "",
+      indication: selectedMedicine.indication || "",
+      adultDose: selectedMedicine.adultDose || "",
+      dosage: selectedMedicine.adultDose || "",
+      frequency: selectedMedicine.frequency || "",
+      duration: selectedMedicine.typicalDuration || "",
+      contraindicationsNotes: selectedMedicine.contraindicationsNotes || "",
+    };
+
     setMedicines(updated);
   };
 
@@ -45,10 +125,17 @@ export default function CreatePrescriptionForm({
     setMedicines([
       ...medicines,
       {
+        medicineId: null,
         name: "",
+        genericName: "",
+        strength: "",
+        form: "",
+        indication: "",
+        adultDose: "",
         dosage: "",
         frequency: "",
         duration: "",
+        contraindicationsNotes: "",
         instructions: "",
       },
     ]);
@@ -61,13 +148,22 @@ export default function CreatePrescriptionForm({
 
   const handleSubmit = async () => {
     try {
+      const validMedicines = medicines.filter(
+        (item) => item.medicineId && item.name.trim()
+      );
+
+      if (validMedicines.length === 0) {
+        toast.error("At least one selected medicine is required");
+        return;
+      }
+
       setLoading(true);
 
       const formData = new FormData();
       formData.append("consultationId", consultationId);
       formData.append("diagnosis", diagnosis);
       formData.append("notes", notes);
-      formData.append("medicines", JSON.stringify(medicines));
+      formData.append("medicines", JSON.stringify(validMedicines));
 
       files.forEach((file) => {
         formData.append("files", file);
@@ -81,24 +177,11 @@ export default function CreatePrescriptionForm({
 
       if (data.success) {
         toast.success("Prescription created successfully");
-
-        setDiagnosis("");
-        setNotes("");
-        setFiles([]);
-        setMedicines([
-          {
-            name: "",
-            dosage: "",
-            frequency: "",
-            duration: "",
-            instructions: "",
-          },
-        ]);
-
-        onSuccess?.();
-      } else {
-        toast.error(data.message || "Failed to create prescription");
+        onSuccess?.(data.prescription);
+        return;
       }
+
+      toast.error(data.message || "Failed to create prescription");
     } catch (error: any) {
       toast.error(
         error?.response?.data?.message || "Failed to create prescription"
@@ -110,6 +193,35 @@ export default function CreatePrescriptionForm({
 
   return (
     <div className="space-y-6">
+      {hasPharmacy && (
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <h3 className="mb-3 font-semibold text-white">Selected Pharmacy</h3>
+          <div className="space-y-2 text-sm text-slate-300">
+            {pharmacySnapshot?.name && (
+              <p>
+                <span className="text-slate-400">Name: </span>
+                {pharmacySnapshot.name}
+              </p>
+            )}
+            {pharmacySnapshot?.email && (
+              <p>
+                <span className="text-slate-400">Email: </span>
+                {pharmacySnapshot.email}
+              </p>
+            )}
+            {pharmacySnapshot?.phone && (
+              <p>
+                <span className="text-slate-400">Phone: </span>
+                {pharmacySnapshot.phone}
+              </p>
+            )}
+            <p className="text-xs text-slate-400">
+              Prescription create hone ke baad isi pharmacy ko send ki jayegi.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Textarea
         placeholder="Diagnosis"
         value={diagnosis}
@@ -127,17 +239,23 @@ export default function CreatePrescriptionForm({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Medicines</h3>
-          <Button type="button" variant="outline" className="text-black cursor-pointer" onClick={addMedicine}>
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer text-black"
+            onClick={addMedicine}
+          >
             + Add Medicine
           </Button>
         </div>
 
         {medicines.map((medicine, index) => (
-          <MedicineInput
+          <MedicineSelectInput
             key={index}
             index={index}
             medicine={medicine}
             onChange={handleMedicineChange}
+            onSelectMedicine={handleSelectMedicine}
             onRemove={removeMedicine}
           />
         ))}

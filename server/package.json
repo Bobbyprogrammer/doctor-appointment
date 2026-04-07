@@ -24,8 +24,11 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.0",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.2",
-    "streamifier": "^0.1.1"
+    "nodemailer": "^8.0.4",
+    "pdfkit": "^0.18.0",
+    "streamifier": "^0.1.1",
+    "stripe": "^21.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

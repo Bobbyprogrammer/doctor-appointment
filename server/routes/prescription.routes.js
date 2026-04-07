@@ -7,10 +7,12 @@ import {
   getPrescriptionById,
   updatePrescription,
   deletePrescription,
+  sendPrescriptionToPharmacy,
+  sendPrescriptionToPatient,
+  downloadPrescriptionPdf,
 } from "../controllers/prescription.controller.js";
-import { protectRoute,authorizeRoles } from "../middlewares/auth.middleware.js";
-
-import { upload } from "../middlewares/multer.js"
+import { protectRoute, authorizeRoles } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.js";
 
 const router = express.Router();
 
@@ -44,6 +46,30 @@ router.get(
   protectRoute,
   authorizeRoles("patient", "doctor", "admin", "super_admin"),
   getPrescriptionById
+);
+
+// Download PDF
+router.get(
+  "/:id/download",
+  protectRoute,
+  authorizeRoles("patient", "doctor", "admin", "super_admin"),
+  downloadPrescriptionPdf
+);
+
+// Send to pharmacy
+router.post(
+  "/:id/send-to-pharmacy",
+  protectRoute,
+  authorizeRoles("doctor", "admin", "super_admin"),
+  sendPrescriptionToPharmacy
+);
+
+// Send to patient email
+router.post(
+  "/:id/send-to-patient-email",
+  protectRoute,
+  authorizeRoles("doctor", "admin", "super_admin"),
+  sendPrescriptionToPatient
 );
 
 // Create prescription

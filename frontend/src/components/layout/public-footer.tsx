@@ -22,10 +22,10 @@ export default function PublicFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-4">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="rounded-xl bg-primary/10 p-2">
-              <Stethoscope className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-lg font-bold">Telemedicine</span>
+           <Link href="/" className="flex items-center gap-2">
+          <img src="./Logo.png" className="w-16 h-16" alt="" />
+        </Link>
+            
           </div>
           <p className="text-sm text-muted-foreground">
             Secure online consultations, prescriptions, and healthcare support
@@ -80,8 +80,8 @@ export default function PublicFooter() {
         <div>
           <h3 className="mb-4 font-semibold">Support</h3>
           <div className="space-y-3 text-sm text-muted-foreground">
-            <p>Email: support@telemedicine.com</p>
-            <p>Phone: +353 123 456 789</p>
+            <p>Email: info@quickdoctor.ie</p>
+            <p>Phone: +353 83 413 6053</p>
             <p>Available: Mon - Sun, 8:00 AM - 10:00 PM</p>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function PublicFooter() {
 
       <div className="border-t">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-4 text-sm text-muted-foreground md:flex-row">
-          <p>© 2026 Telemedicine. All rights reserved.</p>
+          <p>© 2026 QuickDoctor.ie All rights reserved.</p>
           <p>Healthcare support online, safely and securely.</p>
         </div>
       </div>

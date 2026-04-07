@@ -49,8 +49,8 @@ const navItems = [
     icon: Pill,
   },
   {
-    label: "Certificates",
-    href: "/patient/certificates",
+    label: "Sick Certificates",
+    href: "/patient/sick-certificate",
     icon: BadgeCheck,
   },
   {
@@ -63,6 +63,7 @@ const navItems = [
     href: "/patient/profile",
     icon: UserRound,
   },
+ 
   {
     label: "Settings",
     href: "/patient/settings",

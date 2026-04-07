@@ -5,14 +5,16 @@ import { Menu, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import MobilePublicNav from "./mobile-nav";
+import Image from "next/image";
 
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
   { label: "Services", href: "/services" },
-  { label: "Blog", href: "/blog" },
+  { label: "Blog", href: "/blogs" },
   { label: "FAQs", href: "/faq" },
   { label: "Contact", href: "/contact" },
+  { label: "Sick Certificate", href: "/patient/sick-certificate" },
 ];
 
 export default function PublicNavbar() {
@@ -25,10 +27,7 @@ export default function PublicNavbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="rounded-xl bg-primary/10 p-2">
-            <Stethoscope className="h-5 w-5 text-primary" />
-          </div>
-          <span className="text-lg font-bold">Telemedicine</span>
+          <img src="./Logo.png" className="w-16 h-16" alt="" />
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
