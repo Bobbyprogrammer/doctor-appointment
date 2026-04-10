@@ -14,31 +14,33 @@ import {
 } from "@/components/ui/dialog";
 import PatientForm from "./patient-form";
 import { usePatients } from "@/features/patients/context/PatientsContext";
-import type { CreatePatientPayload } from "@/types/patient";
+import type { CreatePatientPayload,UpdatePatientPayload } from "@/types/patient";
 
 const AddPatientDialog = () => {
   const { addPatient } = usePatients();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleCreatePatient = async (payload: CreatePatientPayload) => {
-    try {
-      setSubmitting(true);
+ const handleCreatePatient = async (
+  payload: CreatePatientPayload | UpdatePatientPayload
+) => {
+  try {
+    setSubmitting(true);
 
-      const success = await addPatient(payload);
+    const success = await addPatient(payload as CreatePatientPayload);
 
-      if (success) {
-        toast.success("Patient created successfully");
-        setOpen(false);
-      } else {
-        toast.error("Failed to create patient");
-      }
-    } catch (error) {
-      toast.error("Something went wrong");
-    } finally {
-      setSubmitting(false);
+    if (success) {
+      toast.success("Patient created successfully");
+      setOpen(false);
+    } else {
+      toast.error("Failed to create patient");
     }
-  };
+  } catch (error) {
+    toast.error("Something went wrong");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
