@@ -16,11 +16,14 @@ export const createConsultation = async (req, res) => {
       notes,
       patientType = "self",
       patientDob,
+
+      // ✅ NEW
+      patientAddress = null,
+
       pharmacySelectionType = "none",
       selectedPharmacyId = null,
       selectedPharmacyOther = null,
     } = req.body;
-
 
     let questionnaireAnswers = [];
     if (req.body.questionnaireAnswers) {
@@ -56,6 +59,51 @@ export const createConsultation = async (req, res) => {
       } catch {
         parsedSelectedPharmacyOther = null;
       }
+    }
+
+    // ✅ NEW: parse patient address
+    let parsedPatientAddress = {
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "Ireland",
+    };
+
+    if (patientAddress) {
+      try {
+        const addr =
+          typeof patientAddress === "string"
+            ? JSON.parse(patientAddress)
+            : patientAddress;
+
+        parsedPatientAddress = {
+          line1: addr?.line1?.trim() || "",
+          line2: addr?.line2?.trim() || "",
+          city: addr?.city?.trim() || "",
+          state: addr?.state?.trim() || "",
+          postalCode: addr?.postalCode?.trim() || "",
+          country: addr?.country?.trim() || "Ireland",
+        };
+      } catch {
+        parsedPatientAddress = {
+          line1: "",
+          line2: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "Ireland",
+        };
+      }
+    }
+
+    // ✅ NEW: validate required address
+    if (!parsedPatientAddress.line1 || !parsedPatientAddress.city) {
+      return res.status(400).json({
+        success: false,
+        message: "Patient address line 1 and city are required",
+      });
     }
 
     if (!serviceId) {
@@ -147,7 +195,6 @@ export const createConsultation = async (req, res) => {
       });
     }
 
-    // Validate questionnaire answers against service questionnaire
     let normalizedQuestionnaireAnswers = [];
 
     const questionnaire = await Questionnaire.findOne({
@@ -537,6 +584,10 @@ export const createConsultation = async (req, res) => {
       doctorId: assignedDoctorId,
       patientType: normalizedType,
       patientDob: dobDate,
+
+      // ✅ NEW
+      patientAddress: parsedPatientAddress,
+
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       status: "pending_payment",
       paymentStatus: "unpaid",

@@ -102,7 +102,63 @@ const prescriptionFileSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
+const patientSnapshotSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    email: {
+      type: String,
+      default: "",
+      trim: true,
+      lowercase: true,
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    address: {
+      line1: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      line2: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      city: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      state: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      postalCode: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      country: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+  },
+  { _id: false }
+);
 const prescriptionSchema = new mongoose.Schema(
   {
     consultationId: {
@@ -156,7 +212,10 @@ const prescriptionSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
-
+    patientSnapshot: {
+      type: patientSnapshotSchema,
+      default: () => ({}),
+    },
     pharmacySnapshot: {
       registrationNumber: {
         type: String,

@@ -20,6 +20,13 @@ export const createConsultationApi = async (
     formData.append("patientDob", payload.patientDob);
   }
 
+  if (payload.patientAddress) {
+  formData.append(
+    "patientAddress",
+    JSON.stringify(payload.patientAddress)
+  );
+}
+
   if (payload.scheduledAt) {
     formData.append("scheduledAt", payload.scheduledAt);
   }

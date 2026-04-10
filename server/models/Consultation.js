@@ -93,6 +93,39 @@ selectedPharmacySnapshot: {
       type: Date,
       default: null,
     },
+
+    patientAddress: {
+      line1: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      line2: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      city: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      state: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      postalCode: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      country: {
+        type: String,
+        default: "Ireland",
+        trim: true,
+      },
+    },
     scheduledAt: {
       type: Date,
       default: null,

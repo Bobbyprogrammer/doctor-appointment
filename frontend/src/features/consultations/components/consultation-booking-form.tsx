@@ -58,6 +58,13 @@ export default function ConsultationBookingForm({
 
   const [patientType, setPatientType] = useState<PatientType>("self");
   const [patientDob, setPatientDob] = useState("");
+  // ✅ NEW ADDRESS STATE
+const [addressLine1, setAddressLine1] = useState("");
+const [addressLine2, setAddressLine2] = useState("");
+const [city, setCity] = useState("");
+const [stateRegion, setStateRegion] = useState("");
+const [postalCode, setPostalCode] = useState("");
+const [country, setCountry] = useState("Ireland");
   const [scheduledAt, setScheduledAt] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -148,6 +155,10 @@ export default function ConsultationBookingForm({
           return;
         }
       }
+      if (!addressLine1.trim() || !city.trim()) {
+  toast.error("Please enter patient address line 1 and city");
+  return;
+}
     }
 
     try {
@@ -162,22 +173,33 @@ export default function ConsultationBookingForm({
           !(Array.isArray(item.answer) && item.answer.length === 0)
       );
 
-      const payload: any = {
-        serviceId,
-        patientType,
-        patientDob: patientDob || null,
-        scheduledAt: scheduledAt || null,
-        notes,
-        questionnaireAnswers: filteredAnswers,
-        redFlags: {
-          chestPain: false,
-          severeBreathingDifficulty: false,
-          confusion: false,
-          severeAbdominalPain: false,
-          fainting: false,
-        },
-        files,
-      };
+    const payload: any = {
+  serviceId,
+  patientType,
+  patientDob: patientDob || null,
+
+  // ✅ NEW
+  patientAddress: {
+    line1: addressLine1.trim(),
+    line2: addressLine2.trim(),
+    city: city.trim(),
+    state: stateRegion.trim(),
+    postalCode: postalCode.trim(),
+    country: country.trim() || "Ireland",
+  },
+
+  scheduledAt: scheduledAt || null,
+  notes,
+  questionnaireAnswers: filteredAnswers,
+  redFlags: {
+    chestPain: false,
+    severeBreathingDifficulty: false,
+    confusion: false,
+    severeAbdominalPain: false,
+    fainting: false,
+  },
+  files,
+};
 
       if (pharmacySelectionType === "listed") {
         payload.pharmacySelectionType = "listed";
@@ -267,26 +289,108 @@ export default function ConsultationBookingForm({
           <PatientTypeSelector value={patientType} onChange={setPatientType} />
 
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Patient Date of Birth</label>
-              <input
-                type="date"
-                value={patientDob}
-                onChange={(e) => setPatientDob(e.target.value)}
-                className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
-              />
-            </div>
+  <div className="space-y-2">
+    <label className="text-sm font-medium">Patient Date of Birth</label>
+    <input
+      type="date"
+      value={patientDob}
+      onChange={(e) => setPatientDob(e.target.value)}
+      className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+    />
+  </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Preferred Schedule</label>
-              <input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
-              />
-            </div>
-          </div>
+  <div className="space-y-2">
+    <label className="text-sm font-medium">Preferred Schedule</label>
+    <input
+      type="datetime-local"
+      value={scheduledAt}
+      onChange={(e) => setScheduledAt(e.target.value)}
+      className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+    />
+  </div>
+</div>
+
+{/* ✅ NEW ADDRESS SECTION */}
+<div className="mt-8">
+  <div className="mb-4">
+    <h3 className="text-lg font-semibold">Patient Address</h3>
+    <p className="mt-1 text-sm text-slate-600">
+      This address will be used for prescription and medical documentation.
+    </p>
+  </div>
+
+  <div className="grid gap-5 md:grid-cols-2">
+    <div className="space-y-2 md:col-span-2">
+      <label className="text-sm font-medium">
+        Address Line 1 <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        value={addressLine1}
+        onChange={(e) => setAddressLine1(e.target.value)}
+        placeholder="Enter address line 1"
+        className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+      />
+    </div>
+
+    <div className="space-y-2 md:col-span-2">
+      <label className="text-sm font-medium">Address Line 2</label>
+      <input
+        type="text"
+        value={addressLine2}
+        onChange={(e) => setAddressLine2(e.target.value)}
+        placeholder="Apartment, suite, building, etc. (optional)"
+        className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="text-sm font-medium">
+        City / Town <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+        placeholder="Enter city"
+        className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="text-sm font-medium">State / County</label>
+      <input
+        type="text"
+        value={stateRegion}
+        onChange={(e) => setStateRegion(e.target.value)}
+        placeholder="Enter county or state"
+        className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Postal Code / Eircode</label>
+      <input
+        type="text"
+        value={postalCode}
+        onChange={(e) => setPostalCode(e.target.value)}
+        placeholder="Enter postal code"
+        className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Country</label>
+      <input
+        type="text"
+        value={country}
+        onChange={(e) => setCountry(e.target.value)}
+        placeholder="Enter country"
+        className="h-12 w-full rounded-xl border border-black/30 bg-white px-4 text-black outline-none transition"
+      />
+    </div>
+  </div>
+</div>
         </div>
 
         <div className="rounded-3xl border border-black/10 bg-white p-8 text-black shadow-sm">

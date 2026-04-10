@@ -140,15 +140,16 @@ export const generateSickCertificatePdfBuffer = ({ request, doctor }) => {
         .fillColor(MUTED)
         .font("Helvetica")
         .fontSize(10)
-        .text("Digital Healthcare & Medical Certification", hasLogo ? 120 : 40, 68);
+        .text("Online GP Consultation Service", hasLogo ? 120 : 40, 68);
 
       doc
         .fillColor(TEXT)
         .font("Helvetica")
         .fontSize(10)
         .text("QuickDoctor.ie", 390, 40, { align: "right", width: 160 })
-        .text("info@quickdoctor.ie", 390, 55, { align: "right", width: 160 })
-        .text("Medical Certificate Services", 390, 70, {
+        .text("www.quickdoctor.ie", 390, 55, { align: "right", width: 160 })
+        .text("info@quickdoctor.ie", 390, 70, { align: "right", width: 160 })
+        .text("+353 83 413 6053", 390, 85, {
           align: "right",
           width: 160,
         });
@@ -171,10 +172,7 @@ export const generateSickCertificatePdfBuffer = ({ request, doctor }) => {
         .fillColor(MUTED)
         .font("Helvetica")
         .fontSize(11)
-        .text("Official Medical Leave Certification", 40, 165, {
-          align: "center",
-          width: contentWidth,
-        });
+        
 
       // =========================
       // CERTIFICATE META CARD
@@ -192,24 +190,20 @@ export const generateSickCertificatePdfBuffer = ({ request, doctor }) => {
       drawCard(40, 300, 515, 115, "Patient Information");
 
       drawLabelValue("Full Name", patientName, 60, 325, 180);
-      drawLabelValue("Date of Birth", formatDate(request.dateOfBirth), 260, 325, 120);
-      drawLabelValue("Email", request.email, 400, 325, 130);
-
-      drawLabelValue("Phone", request.phone, 60, 360, 180);
-      drawLabelValue("Purpose", purposeText, 260, 360, 120);
-
+      drawLabelValue("Date of Birth", formatDate(request.dateOfBirth), 240, 325, 120);
+      
+      // Address (same row)
       doc
         .fillColor(MUTED)
         .font("Helvetica")
         .fontSize(9)
-        .text("Address", 400, 360, { width: 130 });
-
+        .text("Address", 380, 325, { width: 160 });
+      
       doc
         .fillColor(TEXT)
         .font("Helvetica-Bold")
         .fontSize(10)
-        .text(fullAddress || "-", 400, 374, { width: 130 });
-
+        .text(fullAddress || "-", 380, 340, { width: 160 });
       // =========================
       // LEAVE DETAILS CARD
       // =========================
@@ -220,34 +214,8 @@ export const generateSickCertificatePdfBuffer = ({ request, doctor }) => {
       drawLabelValue("Until", toDate, 330, 460, 100);
       drawLabelValue("Number of Days", totalDays || "-", 440, 460, 90);
 
-      doc
-        .fillColor(MUTED)
-        .font("Helvetica")
-        .fontSize(9)
-        .text("Medical Reason / Illness", 60, 495, { width: 430 });
 
-      doc
-        .fillColor(TEXT)
-        .font("Helvetica-Bold")
-        .fontSize(11)
-        .text(request.illnessDescription || "-", 60, 510, { width: 430 });
-
-      // =========================
-      // CERTIFICATION STATEMENT
-      // =========================
-      drawCard(40, 560, 515, 95, "Doctor Certification");
-
-      const statement = `I, Dr. ${doctorName}, a registered Irish General Practitioner, hereby certify that ${patientName} is medically unfit for ${purposeText.toLowerCase()} from ${fromDate} until ${toDate}. This certificate has been issued based on the medical information provided and clinical review completed through QuickDoctor.ie.`;
-
-      doc
-        .fillColor(TEXT)
-        .font("Helvetica")
-        .fontSize(11)
-        .text(statement, 60, 590, {
-          width: 475,
-          lineGap: 4,
-          align: "justify",
-        });
+    
 
   // =========================
 // SIGNATURE AREA
@@ -303,20 +271,21 @@ doc
 });
 
 // MCRN below doctor name
-doc
-.fillColor(MUTED)
-.font("Helvetica")
-.fontSize(10)
-.text(`Irish MCRN: ${doctor?.licenseNumber || "-"}`, 340, 762, {
-  width: 180,
-  align: "center",
-  lineBreak: false,
-});
+// doc
+// .fillColor(MUTED)
+// .font("Helvetica")
+// .fontSize(10)
+// .text(`Irish MCRN: ${doctor?.licenseNumber || "-"}`, 340, 762, {
+//   width: 180,
+//   align: "center",
+//   lineBreak: false,
+// });
 
       // =========================
       // FOOTER
       // =========================
-      drawDivider(790);
+   
+      drawDivider(760);
 
       doc
         .fillColor(MUTED)
@@ -325,10 +294,9 @@ doc
         .text(
           "Employers may contact QuickDoctor.ie to verify the authenticity of this certificate.",
           40,
-          802,
+          770,
           { align: "center", width: contentWidth }
         );
-
      
 
       doc.end();

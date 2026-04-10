@@ -129,6 +129,16 @@ export interface CreateConsultationPayload {
   redFlags?: Record<string, boolean>;
   files?: File[];
 
+  // ✅ NEW
+  patientAddress?: {
+    line1: string;
+    line2?: string;
+    city: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+
   pharmacySelectionType?: "listed" | "other" | "none";
   selectedPharmacyId?: string | null;
   selectedPharmacyOther?: {

@@ -33,10 +33,9 @@ const normalizeMedicines = (rawMedicines = []) => {
 };
 
 
-
 export const createPrescription = async (req, res) => {
   try {
-    const { consultationId, diagnosis, notes } = req.body;
+    const { consultationId, diagnosis = "", notes = "" } = req.body;
 
     let medicines = [];
     if (req.body.medicines) {
@@ -67,7 +66,10 @@ export const createPrescription = async (req, res) => {
     }
 
     const consultation = await Consultation.findById(consultationId)
-      .populate("patientId", "firstName lastName email")
+      .select(
+        "patientId doctorId patientDob patientAddress reference status selectedPharmacySnapshot"
+      )
+      .populate("patientId", "firstName lastName email phone")
       .populate("doctorId", "firstName lastName email");
 
     if (!consultation) {
@@ -101,6 +103,9 @@ export const createPrescription = async (req, res) => {
 
     const reference = `RX-${String(nextNumber).padStart(5, "0")}`;
 
+    // =========================
+    // OPTIONAL FILES
+    // =========================
     let uploadedFiles = [];
 
     if (req.files && req.files.length > 0) {
@@ -133,6 +138,9 @@ export const createPrescription = async (req, res) => {
       }
     }
 
+    // =========================
+    // PHARMACY SNAPSHOT
+    // =========================
     const pharmacySnapshot = consultation.selectedPharmacySnapshot || {
       registrationNumber: "",
       name: "",
@@ -146,16 +154,37 @@ export const createPrescription = async (req, res) => {
       eircode: "",
     };
 
+    // =========================
+    // PATIENT SNAPSHOT
+    // =========================
+    const patientSnapshot = {
+      firstName: consultation.patientId?.firstName || "",
+      lastName: consultation.patientId?.lastName || "",
+      email: consultation.patientId?.email || "",
+      dateOfBirth: consultation.patientDob || null,
+
+      address: {
+        line1: consultation.patientAddress?.line1 || "",
+        line2: consultation.patientAddress?.line2 || "",
+        city: consultation.patientAddress?.city || "",
+        state: consultation.patientAddress?.state || "",
+        postalCode: consultation.patientAddress?.postalCode || "",
+        country: consultation.patientAddress?.country || "",
+      },
+    };
+
     const prescription = await Prescription.create({
       consultationId: consultation._id,
-      patientId: consultation.patientId._id || consultation.patientId,
-      doctorId: consultation.doctorId?._id || consultation.doctorId || req.user._id,
+      patientId: consultation.patientId?._id || consultation.patientId,
+      doctorId:
+        consultation.doctorId?._id || consultation.doctorId || req.user._id,
       reference,
       diagnosis: diagnosis?.trim() || "",
       notes: notes?.trim() || "",
       medicines,
-      files: uploadedFiles,
+      files: uploadedFiles, // optional
       pharmacySnapshot,
+      patientSnapshot,
       issuedAt: new Date(),
     });
 
@@ -196,6 +225,7 @@ export const createPrescription = async (req, res) => {
     });
   }
 };
+
 
 export const sendPrescriptionToPharmacy = async (req, res) => {
   try {

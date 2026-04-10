@@ -8,6 +8,11 @@ export const generatePrescriptionPdfBuffer = ({
   doctor,
   consultation,
 }) => {
+
+  
+  
+ 
+  
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -43,7 +48,12 @@ export const generatePrescriptionPdfBuffer = ({
       // =========================
       const formatDate = (date) => {
         if (!date) return "-";
-        return new Date(date).toLocaleDateString("en-IE");
+      
+        const parsed = new Date(date);
+      
+        if (isNaN(parsed.getTime())) return "-";
+      
+        return parsed.toLocaleDateString("en-IE");
       };
 
       const formatDateTime = (date) => {
@@ -103,15 +113,32 @@ export const generatePrescriptionPdfBuffer = ({
       // =========================
       const issueDate =
         prescription.issuedAt || prescription.createdAt || new Date();
-
-      const patientName =
-        `${patient?.firstName || ""} ${patient?.lastName || ""}`.trim() || "-";
-
+        const patientName =
+        `${prescription?.patientSnapshot?.firstName || ""} ${
+          prescription?.patientSnapshot?.lastName || ""
+        }`.trim() || "-";
+      
+        const patientDob = prescription?.patientSnapshot?.dateOfBirth
+        ? new Date(prescription.patientSnapshot.dateOfBirth).toLocaleDateString("en-IE")
+        : "-";
+      
+      const patientAddressParts = [
+        prescription?.patientSnapshot?.address?.line1,
+        prescription?.patientSnapshot?.address?.line2,
+        prescription?.patientSnapshot?.address?.city,
+        prescription?.patientSnapshot?.address?.state,
+        prescription?.patientSnapshot?.address?.postalCode,
+        prescription?.patientSnapshot?.address?.country,
+      ].filter(Boolean);
+      
+      const patientAddress =
+        patientAddressParts.length > 0 ? patientAddressParts.join(", ") : "-";
+      
       const doctorName =
         `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim() || "-";
-
+      
       const consultationRef = consultation?.reference || "-";
-      const consultationStatus = consultation?.status || "-";
+
 
       const logoPath = path.join(process.cwd(), "public", "Logo.png");
       const hasLogo = fs.existsSync(logoPath);
@@ -133,15 +160,16 @@ export const generatePrescriptionPdfBuffer = ({
         .fillColor(MUTED)
         .font("Helvetica")
         .fontSize(10)
-        .text("Digital Healthcare & Online Prescription Services", hasLogo ? 120 : 40, 66);
+        .text("Online GP Consultation Service", hasLogo ? 120 : 40, 66);
 
-      doc
+        doc
         .fillColor(TEXT)
         .font("Helvetica")
         .fontSize(10)
         .text("QuickDoctor.ie", 390, 40, { align: "right", width: 160 })
-        .text("support@quickdoctor.ie", 390, 55, { align: "right", width: 160 })
-        .text("Secure QuickDoctor Platform", 390, 70, {
+        .text("www.quickdoctor.ie", 390, 55, { align: "right", width: 160 })
+        .text("info@quickdoctor.ie", 390, 70, { align: "right", width: 160 })
+        .text("+353 83 413 6053", 390, 85, {
           align: "right",
           width: 160,
         });
@@ -160,65 +188,45 @@ export const generatePrescriptionPdfBuffer = ({
           width: contentWidth,
         });
 
-      doc
-        .fillColor(MUTED)
-        .font("Helvetica")
-        .fontSize(11)
-        .text("Official Medication & Treatment Record", 40, 165, {
-          align: "center",
-          width: contentWidth,
-        });
+     
 
       // =========================
       // TOP META CARDS
       // =========================
       drawCard(leftX, 200, cardWidth, 90, "Prescription Details");
-      drawCard(rightX, 200, cardWidth, 90, "Consultation Details");
+  
 
       drawLabelValue("Reference No", prescription.reference, 60, 225, 180);
       drawLabelValue("Issued At", formatDateTime(issueDate), 60, 257, 180);
 
-      drawLabelValue("Consultation Ref", consultationRef, 322, 225, 180);
-      drawLabelValue("Status", consultationStatus, 322, 257, 180);
+    // =========================
+// PATIENT CARD
+// =========================
+drawCard(leftX, 310, 515, 125, "Patient Information");
 
-      // =========================
-      // PATIENT + DOCTOR CARDS
-      // =========================
-      drawCard(leftX, 310, cardWidth, 90, "Patient Information");
-      drawCard(rightX, 310, cardWidth, 90, "Doctor Information");
+drawLabelValue("Patient Name", patientName, 60, 335, 220);
+drawLabelValue("Date of Birth", patientDob, 320, 335, 140);
 
-      drawLabelValue("Patient Name", patientName, 60, 335, 180);
-      drawLabelValue("Patient Email", patient?.email || "-", 60, 367, 180);
+doc
+  .fillColor(MUTED)
+  .font("Helvetica")
+  .fontSize(9)
+  .text("Address", 60, 372, { width: 430 });
 
-      drawLabelValue("Doctor Name", doctorName, 322, 335, 180);
-      drawLabelValue("Doctor Email", doctor?.email || "-", 322, 367, 180);
+doc
+  .fillColor(TEXT)
+  .font("Helvetica-Bold")
+  .fontSize(10.5)
+  .text(patientAddress, 60, 386, {
+    width: 450,
+    lineGap: 2,
+  });
 
-      // =========================
-      // DIAGNOSIS / NOTES
-      // =========================
-      drawCard(40, 420, 515, 115, "Clinical Summary");
-
-      drawLabelValue("Diagnosis", prescription.diagnosis || "-", 60, 445, 430);
-
-      doc
-        .fillColor(MUTED)
-        .font("Helvetica")
-        .fontSize(9)
-        .text("Doctor Notes", 60, 480, { width: 430 });
-
-      doc
-        .fillColor(TEXT)
-        .font("Helvetica")
-        .fontSize(11)
-        .text(prescription.notes || "-", 60, 495, {
-          width: 470,
-          lineGap: 3,
-        });
-
+   
       // =========================
       // MEDICINES SECTION
       // =========================
-      let y = 560;
+      let y = 470;
 
       doc
         .fillColor(PRIMARY)
@@ -230,58 +238,63 @@ export const generatePrescriptionPdfBuffer = ({
 
       if (Array.isArray(prescription.medicines) && prescription.medicines.length > 0) {
         prescription.medicines.forEach((med, index) => {
-          y = ensurePageSpace(170, y);
-
+          y = ensurePageSpace(145, y);
+      
           // Medicine card
           doc
-            .roundedRect(40, y, 515, 150, 10)
+            .roundedRect(40, y, 515, 128, 10)
             .fillAndStroke(WHITE, BORDER);
-
+      
           // Header strip
           doc
+            .save()
             .roundedRect(40, y, 515, 30, 10)
-            .fill(PRIMARY);
-
+            .clip()
+            .rect(40, y, 515, 30)
+            .fill(PRIMARY)
+            .restore();
+      
           doc
             .fillColor(WHITE)
             .font("Helvetica-Bold")
             .fontSize(12)
-            .text(`${index + 1}. ${med.name || "Unnamed medicine"}`, 55, y + 9);
-
+            .text(`${index + 1}. ${med.name || "Unnamed medicine"}`, 55, y + 9, {
+              width: 460,
+              ellipsis: true,
+            });
+      
           let cardY = y + 42;
-
-          drawLabelValue("Generic Name", med.genericName || "-", 55, cardY, 150);
-          drawLabelValue("Strength / Form", `${med.strength || "-"} ${med.form || ""}`.trim(), 220, cardY, 150);
-          drawLabelValue("Adult Dose", med.adultDose || "-", 390, cardY, 120);
-
+      
+          // Generic name row
+          drawLabelValue("Generic Name", med.genericName || "-", 55, cardY, 430);
+      
+          // SAME LINE: Dosage + Frequency + Duration
           cardY += 38;
-
-          drawLabelValue("Indication", med.indication || "-", 55, cardY, 150);
-          drawLabelValue("Dosage", med.dosage || "-", 220, cardY, 150);
-          drawLabelValue("Frequency", med.frequency || "-", 390, cardY, 120);
-
+      
+          drawLabelValue("Dosage", med.dosage || "-", 55, cardY, 140);
+          drawLabelValue("Frequency", med.frequency || "-", 220, cardY, 140);
+          drawLabelValue("Duration", med.duration || "-", 385, cardY, 120);
+      
+          // Instructions row
           cardY += 38;
-
-          drawLabelValue("Duration", med.duration || "-", 55, cardY, 150);
-          drawLabelValue("Contraindications", med.contraindicationsNotes || "-", 220, cardY, 290);
-
-          cardY += 38;
-
+      
           doc
             .fillColor(MUTED)
             .font("Helvetica")
             .fontSize(9)
             .text("Instructions", 55, cardY, { width: 430 });
-
+      
           doc
             .fillColor(TEXT)
             .font("Helvetica")
             .fontSize(10)
-            .text(med.instructions || "N/A", 55, cardY + 14, {
+            .text(med.instructions || "N/A", 55, cardY + 12, {
               width: 450,
+              lineGap: 2,
+              ellipsis: true,
             });
-
-          y += 170;
+      
+          y += 145;
         });
       } else {
         doc
@@ -408,20 +421,13 @@ export const generatePrescriptionPdfBuffer = ({
         .font("Helvetica")
         .fontSize(9)
         .text(
-          "This prescription was digitally generated by QuickDoctor.ie",
+          "Issued following an online consultation with an IMC-registered doctor. Pharmacies may contact QuickDoctor.ie for verification.",
           40,
           footerY,
           { align: "center", width: contentWidth }
         );
 
-      doc
-        .fillColor(ACCENT)
-        .font("Helvetica-Bold")
-        .fontSize(9)
-        .text("quickdoctor.ie", 40, footerY + 16, {
-          align: "center",
-          width: contentWidth,
-        });
+    
 
       doc.end();
     } catch (error) {
