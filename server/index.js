@@ -19,7 +19,7 @@ import pharmacyRoutes from "./routes/pharmacy.route.js";
 import sickCertificateRoutes from "./routes/sickCertificate.routes.js"
 import blogRoutes from "./routes/blog.routes.js";
 import medicineRoutes from "./routes/medicine.routes.js";
-import { notFound, errorHandler } from "./middlewares/error.middleware.js";
+
 
 dotenv.config();
 
@@ -80,8 +80,6 @@ app.use("/api/sick-certificates", sickCertificateRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/medicines", medicineRoutes);
 
-app.use(notFound);
-app.use(errorHandler);
 
 const PORT = process.env.PORT || 8000;
 
