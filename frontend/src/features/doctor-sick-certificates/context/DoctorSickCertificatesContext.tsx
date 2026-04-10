@@ -54,18 +54,25 @@ export const DoctorSickCertificatesProvider = ({
     }
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (
+    id: string,
+    status: string,
+    doctorNote?: string
+  ) => {
     try {
       const { data } = await api.patch(
         `/sick-certificates/doctor/${id}/status`,
-        { status }
+        {
+          status,
+          doctorNote,
+        }
       );
-
+  
       if (data.success) {
         await fetchRequests();
         return { success: true, message: data.message };
       }
-
+  
       return { success: false, message: data.message };
     } catch (error: any) {
       return {

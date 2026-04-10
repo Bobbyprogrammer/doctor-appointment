@@ -61,7 +61,7 @@ export default function DoctorSickCertificateDialog({
     try {
       setActionLoading(status);
 
-      const res = await updateStatus(request._id!, status, doctorNote);
+      const res = await updateStatus(request._id!, status);
 
       if (res.success) {
         toast.success(res.message || "Status updated");
@@ -79,7 +79,7 @@ export default function DoctorSickCertificateDialog({
     try {
       setActionLoading("pdf");
       const res = await generatePdf(request._id!);
-      toast.success(res?.message || "PDF generated successfully");
+      toast.success( "PDF generated successfully");
     } catch (error: any) {
       toast.error(error?.message || "Failed to generate PDF");
     } finally {
@@ -91,7 +91,7 @@ export default function DoctorSickCertificateDialog({
     try {
       setActionLoading("send");
       const res = await sendToPatient(request._id!);
-      toast.success(res?.message || "Certificate sent to patient");
+      toast.success( "Certificate sent to patient");
     } catch (error: any) {
       toast.error(error?.message || "Failed to send email");
     } finally {

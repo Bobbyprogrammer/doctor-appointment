@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { PrescriptionsProvider, usePrescriptions } from "@/features/prescriptions/context/PrescriptionsContext";
 import PrescriptionCard from "@/features/prescriptions/components/prescription-card";
-
+import type { Prescription } from "@/types/prescription";
 function PrescriptionsPageContent() {
-  const { prescriptions, loading, fetchMyPrescriptions } = usePrescriptions();
-
+  const {  loading, fetchMyPrescriptions } = usePrescriptions();
+  const { prescriptions }: { prescriptions: Prescription[] } = usePrescriptions();
   useEffect(() => {
     fetchMyPrescriptions();
   }, []);

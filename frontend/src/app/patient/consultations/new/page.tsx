@@ -6,7 +6,8 @@ import ConsultationBookingForm from "@/features/consultations/components/consult
 export default function NewConsultationPage() {
   const searchParams = useSearchParams();
   const serviceId = searchParams.get("serviceId");
-
+  const serviceName = searchParams.get("serviceName") || "";
+  const amount = Number(searchParams.get("amount")) || 0;
   if (!serviceId) {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12">
@@ -19,7 +20,8 @@ export default function NewConsultationPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
-      <ConsultationBookingForm serviceId={serviceId}  
+      <ConsultationBookingForm serviceId={serviceId}    serviceName={serviceName}
+  amount={amount} 
   />
     </main>
   );

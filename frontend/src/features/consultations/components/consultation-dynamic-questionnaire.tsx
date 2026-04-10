@@ -11,6 +11,7 @@ interface Question {
   options?: { label: string; value: string }[];
   placeholder?: string;
   isRequired: boolean;
+  helpText:string
 }
 
 interface Props {

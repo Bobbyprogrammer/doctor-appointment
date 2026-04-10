@@ -1,8 +1,9 @@
 import PublicBlogCard from "@/features/blogs/components/public-blog-card";
 import { getPublishedBlogsApi } from "@/features/blogs/services/public-blogs.api";
+import type { Blog } from "@/types/blog";
 
 export default async function BlogsPage() {
-  let blogs = [];
+  let blogs: Blog[] = [];
 
   try {
     const data = await getPublishedBlogsApi();
@@ -23,10 +24,6 @@ export default async function BlogsPage() {
             <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
               Blogs & Health Resources
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-green-100 sm:text-lg">
-              Read the latest healthcare insights, wellness articles, and
-              telemedicine updates from our team.
-            </p>
           </div>
         </div>
       </section>
@@ -35,7 +32,7 @@ export default async function BlogsPage() {
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         {blogs.length > 0 ? (
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {blogs.map((blog: any) => (
+            {blogs.map((blog) => (
               <PublicBlogCard key={blog._id || blog.id} blog={blog} />
             ))}
           </div>

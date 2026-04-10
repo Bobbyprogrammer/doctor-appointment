@@ -43,3 +43,15 @@ export interface Prescription {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface GetMyPrescriptionsResponse {
+  success: boolean;
+  prescriptions: Prescription[];
+  message?: string;
+}
+
+export interface PrescriptionsContextType {
+  prescriptions: Prescription[];
+  loading: boolean;
+  fetchMyPrescriptions: () => Promise<void>;
+}
