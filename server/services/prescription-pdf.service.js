@@ -310,44 +310,7 @@ doc
         y += 80;
       }
 
-      // =========================
-      // PHARMACY SECTION
-      // =========================
-      if (prescription?.pharmacySnapshot?.name) {
-        y = ensurePageSpace(120, y + 10);
-
-        drawCard(40, y, 515, 105, "Preferred Pharmacy");
-
-        drawLabelValue("Pharmacy Name", prescription.pharmacySnapshot.name, 60, y + 25, 180);
-        drawLabelValue("Email", prescription.pharmacySnapshot.email || "-", 250, y + 25, 150);
-        drawLabelValue("Phone", prescription.pharmacySnapshot.phone || "-", 430, y + 25, 90);
-
-        const addressParts = [
-          prescription.pharmacySnapshot.street1,
-          prescription.pharmacySnapshot.street2,
-          prescription.pharmacySnapshot.street3,
-          prescription.pharmacySnapshot.town,
-          prescription.pharmacySnapshot.county,
-          prescription.pharmacySnapshot.eircode,
-        ].filter(Boolean);
-
-        doc
-          .fillColor(MUTED)
-          .font("Helvetica")
-          .fontSize(9)
-          .text("Address", 60, y + 62, { width: 430 });
-
-        doc
-          .fillColor(TEXT)
-          .font("Helvetica-Bold")
-          .fontSize(10)
-          .text(addressParts.length > 0 ? addressParts.join(", ") : "-", 60, y + 76, {
-            width: 450,
-          });
-
-        y += 125;
-      }
-
+     
       // =========================
       // SIGNATURE SECTION
       // =========================
